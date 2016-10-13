@@ -1,5 +1,6 @@
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import lombok.AllArgsConstructor;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,6 +22,7 @@ public class ShopTest
 
   private String product1Barcode = "12345";
   private String product2Barcode = "23456";
+  private String productNotFoundBarcode = "234222";
   private String product1Price = "EUR 7,95";
   private String product2Price = "EUR 12,50";
 
@@ -33,13 +35,13 @@ public class ShopTest
   @Test
   public void getsProduct1Price()
   {
-    assertEquals(product1Price, BarcodeToPriceConverter.getPrice(product1Barcode));
+    assertEquals(product1Price, Catalog.findPrice(product1Barcode));
   }
 
   @Test
   public void getsProduct2Price()
   {
-    assertEquals(product2Price, BarcodeToPriceConverter.getPrice(product2Barcode));
+    assertEquals(product2Price, Catalog.findPrice(product2Barcode));
   }
 
   @Test
@@ -67,7 +69,7 @@ public class ShopTest
   }
 
   @Test
-  public void showsProduct1PriceUseCase()
+  public void cashProduct1()
   {
     CashierScanner cashierScanner = whenCashierScannerReads(product1Barcode);
     Cashier cashier = new Cashier(cashierScanner, display);
@@ -77,6 +79,17 @@ public class ShopTest
     verify(hardwareDisplay).show(product1Price);
   }
 
+  @Test
+  public void cashProductNotFoundUseCase()
+  {
+    CashierScanner cashierScanner = whenCashierScannerReads(productNotFoundBarcode);
+    Cashier cashier = new Cashier(cashierScanner, display);
+
+    cashier.scan();
+
+    verify(hardwareDisplay).show(String.format("Product not found for %s", productNotFoundBarcode));
+  }
+
   private CashierScanner whenCashierScannerReads(String barcode)
   {
     when(hardwareCashierScanner.read()).thenReturn(barcode);
@@ -84,9 +97,9 @@ public class ShopTest
   }
 
   //REQ products not found 499999
-  private static class BarcodeToPriceConverter
+  private static class Catalog
   {
-    public static String getPrice(String barcode)
+    public static String findPrice(String barcode)
     {
       final Map<String, String> pricesByBarcode = new HashMap<String, String>()
       {
@@ -95,7 +108,6 @@ public class ShopTest
           put("23456", "EUR 12,50");
         }
       };
-
       return pricesByBarcode.get(barcode);
     }
   }
@@ -137,6 +149,16 @@ public class ShopTest
     {
       hardwareDisplay.show(text);
     }
+
+    public void showBarcodeNotFound(String barcode)
+    {
+      hardwareDisplay.show(String.format("Product not found for %s", barcode));
+    }
+
+    public void scannedEmptyBarcode(String barcode)
+    {
+
+    }
   }
 
   @AllArgsConstructor
@@ -148,8 +170,20 @@ public class ShopTest
     public void scan()
     {
       String barcode = cashierScanner.read();
-      String price = BarcodeToPriceConverter.getPrice(barcode);
-      display.show(price);
+      if ("".equals(barcode))
+      {
+        display.scannedEmptyBarcode(barcode);
+        return;
+      }
+      String price = Catalog.findPrice(barcode);
+      if (Objects.isNull(price))
+      {
+        display.showBarcodeNotFound(barcode);
+      }
+      else
+      {
+        display.show(price);
+      }
     }
   }
 }
