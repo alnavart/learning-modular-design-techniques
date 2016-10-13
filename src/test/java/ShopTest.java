@@ -1,15 +1,24 @@
+import lombok.AllArgsConstructor;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ShopTest
 {
-  HardwareCashierScanner hardwareCashierScanner;
-  CashierScanner CashierScanner = new CashierScanner();
+  @Mock
+  private HardwareCashierScanner hardwareCashierScanner;
+
+  private String product1Barcode = "10100011";
+  private String product2Barcode = "10100012";
 
   @Test
   public void getsProduct1Price()
   {
-    int price = Cashier.getPrice("10100011");
+    int price = Cashier.getPrice(product1Barcode);
 
     assertEquals(9, price);
   }
@@ -17,7 +26,7 @@ public class ShopTest
   @Test
   public void getsProduct2Price()
   {
-    int price = Cashier.getPrice("10100012");
+    int price = Cashier.getPrice(product2Barcode);
 
     assertEquals(10, price);
   }
@@ -25,9 +34,19 @@ public class ShopTest
   @Test
   public void scansProduct1()
   {
-    String barcode = CashierScanner.read();
+    when(hardwareCashierScanner.read()).thenReturn(product1Barcode);
+    CashierScanner cashierScanner = new CashierScanner(hardwareCashierScanner);
 
-    assertEquals("10100011", barcode);
+    assertEquals(product1Barcode, cashierScanner.read());
+  }
+
+  @Test
+  public void scansProduct2()
+  {
+    when(hardwareCashierScanner.read()).thenReturn(product2Barcode);
+    CashierScanner cashierScanner = new CashierScanner(hardwareCashierScanner);
+
+    assertEquals(product2Barcode, cashierScanner.read());
   }
 
   private static class Cashier
@@ -43,15 +62,22 @@ public class ShopTest
     }
   }
 
+  @AllArgsConstructor
   private class CashierScanner
   {
+    HardwareCashierScanner hardwareCashierScanner;
+
     public String read()
     {
-      return "10100011";
+      return hardwareCashierScanner.read();
     }
   }
 
   private class HardwareCashierScanner
   {
+    public String read()
+    {
+      return null;
+    }
   }
 }
