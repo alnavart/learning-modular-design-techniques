@@ -23,6 +23,7 @@ public class ShopTest
   private String product1Barcode = "12345";
   private String product2Barcode = "23456";
   private String productNotFoundBarcode = "234222";
+  private String emptyBarcode = "";
   private String product1Price = "EUR 7,95";
   private String product2Price = "EUR 12,50";
 
@@ -80,7 +81,7 @@ public class ShopTest
   }
 
   @Test
-  public void cashProductNotFoundUseCase()
+  public void cashProductNotFound()
   {
     CashierScanner cashierScanner = whenCashierScannerReads(productNotFoundBarcode);
     Cashier cashier = new Cashier(cashierScanner, display);
@@ -88,6 +89,17 @@ public class ShopTest
     cashier.scan();
 
     verify(hardwareDisplay).show(String.format("Product not found for %s", productNotFoundBarcode));
+  }
+
+  @Test
+  public void cashProductEmptyBarcode()
+  {
+    CashierScanner cashierScanner = whenCashierScannerReads(emptyBarcode);
+    Cashier cashier = new Cashier(cashierScanner, display);
+
+    cashier.scan();
+
+    verify(hardwareDisplay).show("Error scanning barcode");
   }
 
   private CashierScanner whenCashierScannerReads(String barcode)
@@ -157,7 +169,7 @@ public class ShopTest
 
     public void scannedEmptyBarcode(String barcode)
     {
-
+      hardwareDisplay.show("Error scanning barcode");
     }
   }
 
