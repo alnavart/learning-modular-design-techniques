@@ -1,10 +1,10 @@
 import lombok.AllArgsConstructor;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.refEq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,26 +15,29 @@ public class ShopTest
   private HardwareCashierScanner hardwareCashierScanner;
   @Mock
   private HardwareDisplay hardwareDisplay;
+  private Display display;
 
   private String product1Barcode = "10100011";
   private String product2Barcode = "10100012";
   private Integer product1Price = 9;
   private Integer product2Price = 10;
 
+  @Before
+  public void setUp()
+  {
+    display = new Display(hardwareDisplay);
+  }
+
   @Test
   public void getsProduct1Price()
   {
-    Integer price = BarcodeToPriceConverter.getPrice(product1Barcode);
-
-    assertEquals(product1Price, price);
+    assertEquals(product1Price, BarcodeToPriceConverter.getPrice(product1Barcode));
   }
 
   @Test
   public void getsProduct2Price()
   {
-    Integer price = BarcodeToPriceConverter.getPrice(product2Barcode);
-
-    assertEquals(product2Price, price);
+    assertEquals(product2Price, BarcodeToPriceConverter.getPrice(product2Barcode));
   }
 
   @Test
@@ -58,7 +61,6 @@ public class ShopTest
   @Test
   public void showsTextInTheDisplay()
   {
-    Display display = new Display(hardwareDisplay);
     display.show("hello");
 
     verify(hardwareDisplay).show("hello");
@@ -69,16 +71,17 @@ public class ShopTest
   {
     when(hardwareCashierScanner.read()).thenReturn(product1Barcode);
     CashierScanner cashierScanner = new CashierScanner(hardwareCashierScanner);
-    Cashier cashier = new Cashier(cashierScanner, hardwareDisplay);
+    Cashier cashier = new Cashier(cashierScanner, display);
 
     cashier.scan();
 
     verify(hardwareDisplay).show(product1Price.toString());
   }
 
+  //REQ products not found 499999
   private static class BarcodeToPriceConverter
   {
-    public static int getPrice(String barcode)
+    public static Integer getPrice(String barcode)
     {
       if(barcode.equals("10100011"))
       {
@@ -100,6 +103,7 @@ public class ShopTest
     }
   }
 
+  //REQ Failed scanning no barcode
   private class HardwareCashierScanner
   {
     public String read()
@@ -108,6 +112,7 @@ public class ShopTest
     }
   }
 
+  //REQ ASCII only, not Unicode
   private class HardwareDisplay
   {
     public void show(String text)
@@ -129,14 +134,14 @@ public class ShopTest
   @AllArgsConstructor
   private class Cashier
   {
-    CashierScanner cashierScanner;
-    HardwareDisplay hardwareDisplay;
+    private CashierScanner cashierScanner;
+    private Display display;
 
     public void scan()
     {
-      String barcode = hardwareCashierScanner.read();
+      String barcode = cashierScanner.read();
       Integer price = BarcodeToPriceConverter.getPrice(barcode);
-      hardwareDisplay.show(price.toString());
+      display.show(price.toString());
     }
   }
 }
