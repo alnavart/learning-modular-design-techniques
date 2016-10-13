@@ -1,3 +1,5 @@
+import java.util.HashMap;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.junit.Before;
 import org.junit.Test;
@@ -17,10 +19,10 @@ public class ShopTest
   private HardwareDisplay hardwareDisplay;
   private Display display;
 
-  private String product1Barcode = "10100011";
-  private String product2Barcode = "10100012";
-  private Integer product1Price = 9;
-  private Integer product2Price = 10;
+  private String product1Barcode = "12345";
+  private String product2Barcode = "23456";
+  private String product1Price = "EUR 7,95";
+  private String product2Price = "EUR 12,50";
 
   @Before
   public void setUp()
@@ -75,20 +77,23 @@ public class ShopTest
 
     cashier.scan();
 
-    verify(hardwareDisplay).show(product1Price.toString());
+    verify(hardwareDisplay).show(product1Price);
   }
 
   //REQ products not found 499999
   private static class BarcodeToPriceConverter
   {
-    public static Integer getPrice(String barcode)
+    public static String getPrice(String barcode)
     {
-      if(barcode.equals("10100011"))
+      final Map<String, String> pricesByBarcode = new HashMap<String, String>()
       {
-        return 9;
-      }else {
-        return 10;
-      }
+        {
+          put("12345", "EUR 7,95");
+          put("23456", "EUR 12,50");
+        }
+      };
+
+      return pricesByBarcode.get(barcode);
     }
   }
 
@@ -140,8 +145,8 @@ public class ShopTest
     public void scan()
     {
       String barcode = cashierScanner.read();
-      Integer price = BarcodeToPriceConverter.getPrice(barcode);
-      display.show(price.toString());
+      String price = BarcodeToPriceConverter.getPrice(barcode);
+      display.show(price);
     }
   }
 }
