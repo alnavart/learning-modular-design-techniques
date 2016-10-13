@@ -45,8 +45,7 @@ public class ShopTest
   @Test
   public void scansProduct1()
   {
-    when(hardwareCashierScanner.read()).thenReturn(product1Barcode);
-    CashierScanner cashierScanner = new CashierScanner(hardwareCashierScanner);
+    CashierScanner cashierScanner = whenCashierScannerReads(product1Barcode);
 
     assertEquals(product1Barcode, cashierScanner.read());
   }
@@ -54,8 +53,7 @@ public class ShopTest
   @Test
   public void scansProduct2()
   {
-    when(hardwareCashierScanner.read()).thenReturn(product2Barcode);
-    CashierScanner cashierScanner = new CashierScanner(hardwareCashierScanner);
+    CashierScanner cashierScanner = whenCashierScannerReads(product2Barcode);
 
     assertEquals(product2Barcode, cashierScanner.read());
   }
@@ -71,13 +69,18 @@ public class ShopTest
   @Test
   public void showsProduct1PriceUseCase()
   {
-    when(hardwareCashierScanner.read()).thenReturn(product1Barcode);
-    CashierScanner cashierScanner = new CashierScanner(hardwareCashierScanner);
+    CashierScanner cashierScanner = whenCashierScannerReads(product1Barcode);
     Cashier cashier = new Cashier(cashierScanner, display);
 
     cashier.scan();
 
     verify(hardwareDisplay).show(product1Price);
+  }
+
+  private CashierScanner whenCashierScannerReads(String barcode)
+  {
+    when(hardwareCashierScanner.read()).thenReturn(barcode);
+    return new CashierScanner(hardwareCashierScanner);
   }
 
   //REQ products not found 499999
