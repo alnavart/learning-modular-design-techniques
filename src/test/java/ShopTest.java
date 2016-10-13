@@ -4,6 +4,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -11,6 +12,8 @@ public class ShopTest
 {
   @Mock
   private HardwareCashierScanner hardwareCashierScanner;
+  @Mock
+  private HardwareDisplay hardwareDisplay;
 
   private String product1Barcode = "10100011";
   private String product2Barcode = "10100012";
@@ -49,6 +52,15 @@ public class ShopTest
     assertEquals(product2Barcode, cashierScanner.read());
   }
 
+  @Test
+  public void showsTextInTheDisplay()
+  {
+    Display display = new Display(hardwareDisplay);
+    display.show("hello");
+
+    verify(hardwareDisplay).show("hello");
+  }
+
   private static class Cashier
   {
     public static int getPrice(String barcode)
@@ -65,7 +77,7 @@ public class ShopTest
   @AllArgsConstructor
   private class CashierScanner
   {
-    HardwareCashierScanner hardwareCashierScanner;
+    private HardwareCashierScanner hardwareCashierScanner;
 
     public String read()
     {
@@ -78,6 +90,24 @@ public class ShopTest
     public String read()
     {
       return null;
+    }
+  }
+
+  private class HardwareDisplay
+  {
+    public void show(String text)
+    {
+    }
+  }
+
+  @AllArgsConstructor
+  private class Display
+  {
+    private HardwareDisplay hardwareDisplay;
+
+    public void show(String text)
+    {
+      hardwareDisplay.show(text);
     }
   }
 }
