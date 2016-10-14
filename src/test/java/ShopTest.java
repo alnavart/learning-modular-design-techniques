@@ -1,24 +1,27 @@
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ShopTest
 {
   @Mock
-  private HardwareCashierScanner hardwareCashierScanner;
-  @Mock
   private HardwareDisplay hardwareDisplay;
+
   private Display display;
+  private Cashier cashier;
 
   private String product1Barcode = "12345";
   private String product2Barcode = "23456";
@@ -26,130 +29,99 @@ public class ShopTest
   private String emptyBarcode = "";
   private String product1Price = "EUR 7,95";
   private String product2Price = "EUR 12,50";
+  private String product1PlusProduct2Price = "EUR 20,45";
 
   @Before
   public void setUp()
   {
     display = new Display(hardwareDisplay);
+    cashier = new Cashier(display);
   }
 
   @Test
   public void getsProduct1Price()
   {
-    assertEquals(product1Price, Catalog.findPrice(product1Barcode));
+    assertThat(Catalog.findPrice(product1Barcode), equalTo(7.95));
   }
 
   @Test
   public void getsProduct2Price()
   {
-    assertEquals(product2Price, Catalog.findPrice(product2Barcode));
+    assertThat(Catalog.findPrice(product2Barcode), equalTo(12.5));
+  }
+
+  @Test
+  public void showsPriceInTheDisplay()
+  {
+    display.showPrice(55.6);
+
+    verify(hardwareDisplay).show("EUR 55,60");
   }
 
   @Test
   public void scansProduct1()
   {
-    CashierScanner cashierScanner = whenCashierScannerReads(product1Barcode);
-
-    assertEquals(product1Barcode, cashierScanner.read());
-  }
-
-  @Test
-  public void scansProduct2()
-  {
-    CashierScanner cashierScanner = whenCashierScannerReads(product2Barcode);
-
-    assertEquals(product2Barcode, cashierScanner.read());
-  }
-
-  @Test
-  public void showsTextInTheDisplay()
-  {
-    display.show("hello");
-
-    verify(hardwareDisplay).show("hello");
-  }
-
-  @Test
-  public void cashProduct1()
-  {
-    CashierScanner cashierScanner = whenCashierScannerReads(product1Barcode);
-    Cashier cashier = new Cashier(cashierScanner, display);
-
-    cashier.scan();
+    cashier.scan(product1Barcode);
 
     verify(hardwareDisplay).show(product1Price);
   }
 
   @Test
-  public void cashProductNotFound()
+  public void scansProduct2()
   {
-    CashierScanner cashierScanner = whenCashierScannerReads(productNotFoundBarcode);
-    Cashier cashier = new Cashier(cashierScanner, display);
+    cashier.scan(product2Barcode);
 
-    cashier.scan();
+    verify(hardwareDisplay).show(product2Price);
+  }
+
+  @Test
+  public void scansProductNotFound()
+  {
+    cashier.scan(productNotFoundBarcode);
 
     verify(hardwareDisplay).show(String.format("Product not found for %s", productNotFoundBarcode));
   }
 
   @Test
-  public void cashProductEmptyBarcode()
+  public void scansProductEmptyBarcode()
   {
-    CashierScanner cashierScanner = whenCashierScannerReads(emptyBarcode);
-    Cashier cashier = new Cashier(cashierScanner, display);
-
-    cashier.scan();
+    cashier.scan(emptyBarcode);
 
     verify(hardwareDisplay).show("Error scanning barcode");
   }
 
-  private CashierScanner whenCashierScannerReads(String barcode)
+  @Test
+  public void scansSomeProducts()
   {
-    when(hardwareCashierScanner.read()).thenReturn(barcode);
-    return new CashierScanner(hardwareCashierScanner);
+    cashier.scan(product1Barcode);
+    verify(hardwareDisplay).show(product1Price);
+    cashier.scan(product2Barcode);
+    verify(hardwareDisplay).show(product2Price);
+
+    cashier.displayTotalAmount();
+
+    verify(hardwareDisplay).show(product1PlusProduct2Price);
   }
 
-  //REQ products not found 499999
   private static class Catalog
   {
-    public static String findPrice(String barcode)
+    public static Double findPrice(String barcode)
     {
-      final Map<String, String> pricesByBarcode = new HashMap<String, String>()
+      final Map<String, Double> pricesByBarcode = new HashMap<String, Double>()
       {
         {
-          put("12345", "EUR 7,95");
-          put("23456", "EUR 12,50");
+          put("12345", 7.95);
+          put("23456", 12.50);
         }
       };
       return pricesByBarcode.get(barcode);
     }
   }
 
-  @AllArgsConstructor
-  private class CashierScanner
-  {
-    private HardwareCashierScanner hardwareCashierScanner;
-
-    public String read()
-    {
-      return hardwareCashierScanner.read();
-    }
-  }
-
-  //REQ Failed scanning no barcode
-  private class HardwareCashierScanner
-  {
-    public String read()
-    {
-      return null;
-    }
-  }
-
   //REQ ASCII only, not Unicode
-  private class HardwareDisplay
+  private interface HardwareDisplay
   {
-    public void show(String text)
-    {
-    }
+    void show(String text);
   }
 
   @AllArgsConstructor
@@ -157,9 +129,15 @@ public class ShopTest
   {
     private HardwareDisplay hardwareDisplay;
 
-    public void show(String text)
+    public void showPrice(Double price)
     {
-      hardwareDisplay.show(text);
+      hardwareDisplay.show(formatPrice(price));
+    }
+
+    private String formatPrice(Double price)
+    {
+      NumberFormat formatter = new DecimalFormat("#.00");
+      return String.format("EUR %s", formatter.format(price).replace(".", ","));
     }
 
     public void showBarcodeNotFound(String barcode)
@@ -173,29 +151,34 @@ public class ShopTest
     }
   }
 
-  @AllArgsConstructor
+  @RequiredArgsConstructor
   private class Cashier
   {
-    private CashierScanner cashierScanner;
-    private Display display;
+    private final Display display;
+    private Double totalPrice = 0.0;
 
-    public void scan()
+    public void scan(String barcode)
     {
-      String barcode = cashierScanner.read();
       if ("".equals(barcode))
       {
         display.scannedEmptyBarcode(barcode);
         return;
       }
-      String price = Catalog.findPrice(barcode);
+      Double price = Catalog.findPrice(barcode);
       if (Objects.isNull(price))
       {
         display.showBarcodeNotFound(barcode);
       }
       else
       {
-        display.show(price);
+        totalPrice= totalPrice + price;
+        display.showPrice(price);
       }
+    }
+
+    public void displayTotalAmount()
+    {
+      display.showPrice(totalPrice);
     }
   }
 }
