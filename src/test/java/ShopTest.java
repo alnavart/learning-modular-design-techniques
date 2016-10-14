@@ -61,7 +61,7 @@ public class ShopTest
   @Test
   public void scansProduct1()
   {
-    cashier.scan(product1Barcode);
+    cashier.onScan(product1Barcode);
 
     verify(display).show(product1Price);
   }
@@ -69,7 +69,7 @@ public class ShopTest
   @Test
   public void scansProduct2()
   {
-    cashier.scan(product2Barcode);
+    cashier.onScan(product2Barcode);
 
     verify(display).show(product2Price);
   }
@@ -77,7 +77,7 @@ public class ShopTest
   @Test
   public void scansProductNotFound()
   {
-    cashier.scan(productNotFoundBarcode);
+    cashier.onScan(productNotFoundBarcode);
 
     verify(display).show(String.format("Product not found for %s", productNotFoundBarcode));
   }
@@ -85,7 +85,7 @@ public class ShopTest
   @Test
   public void scansProductEmptyBarcode()
   {
-    cashier.scan(emptyBarcode);
+    cashier.onScan(emptyBarcode);
 
     verify(display).show("Error scanning barcode");
   }
@@ -93,19 +93,19 @@ public class ShopTest
   @Test
   public void scansSomeProducts()
   {
-    cashier.scan(product1Barcode);
+    cashier.onScan(product1Barcode);
     verify(display).show(product1Price);
-    cashier.scan(product2Barcode);
+    cashier.onScan(product2Barcode);
     verify(display).show(product2Price);
 
-    cashier.displayTotalAmount();
+    cashier.onTotalAmount();
 
     verify(display).show(product1PlusProduct2Price);
   }
 
   private static class Catalog
   {
-    public static Double findPrice(String barcode)
+    static Double findPrice(String barcode)
     {
       final Map<String, Double> pricesByBarcode = new HashMap<String, Double>()
       {
@@ -129,17 +129,17 @@ public class ShopTest
   {
     private Display display;
 
-    public void showPrice(Double price)
+    void showPrice(Double price)
     {
       display.show(formatPrice(price));
     }
 
-    public void showBarcodeNotFound(String barcode)
+    void showBarcodeNotFound(String barcode)
     {
       display.show(String.format("Product not found for %s", barcode));
     }
 
-    public void showEmptyBarcode(String barcode)
+    void showEmptyBarcode(String barcode)
     {
       display.show("Error scanning barcode");
     }
@@ -157,7 +157,7 @@ public class ShopTest
     private final DisplayService displayService;
     private Double totalPrice = 0.0;
 
-    public void scan(String barcode)
+    public void onScan(String barcode)
     {
       if ("".equals(barcode))
       {
@@ -176,7 +176,7 @@ public class ShopTest
       }
     }
 
-    public void displayTotalAmount()
+    public void onTotalAmount()
     {
       displayService.showPrice(totalPrice);
     }
