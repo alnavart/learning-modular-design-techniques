@@ -18,9 +18,9 @@ import static org.mockito.Mockito.verify;
 public class ShopTest
 {
   @Mock
-  private HardwareDisplay hardwareDisplay;
-
   private Display display;
+
+  private DisplayService displayService;
   private Cashier cashier;
 
   private String product1Barcode = "12345";
@@ -34,8 +34,8 @@ public class ShopTest
   @Before
   public void setUp()
   {
-    display = new Display(hardwareDisplay);
-    cashier = new Cashier(display);
+    displayService = new DisplayService(display);
+    cashier = new Cashier(displayService);
   }
 
   @Test
@@ -53,9 +53,9 @@ public class ShopTest
   @Test
   public void showsPriceInTheDisplay()
   {
-    display.showPrice(55.6);
+    displayService.showPrice(55.6);
 
-    verify(hardwareDisplay).show("EUR 55,60");
+    verify(display).show("EUR 55,60");
   }
 
   @Test
@@ -63,7 +63,7 @@ public class ShopTest
   {
     cashier.scan(product1Barcode);
 
-    verify(hardwareDisplay).show(product1Price);
+    verify(display).show(product1Price);
   }
 
   @Test
@@ -71,7 +71,7 @@ public class ShopTest
   {
     cashier.scan(product2Barcode);
 
-    verify(hardwareDisplay).show(product2Price);
+    verify(display).show(product2Price);
   }
 
   @Test
@@ -79,7 +79,7 @@ public class ShopTest
   {
     cashier.scan(productNotFoundBarcode);
 
-    verify(hardwareDisplay).show(String.format("Product not found for %s", productNotFoundBarcode));
+    verify(display).show(String.format("Product not found for %s", productNotFoundBarcode));
   }
 
   @Test
@@ -87,20 +87,20 @@ public class ShopTest
   {
     cashier.scan(emptyBarcode);
 
-    verify(hardwareDisplay).show("Error scanning barcode");
+    verify(display).show("Error scanning barcode");
   }
 
   @Test
   public void scansSomeProducts()
   {
     cashier.scan(product1Barcode);
-    verify(hardwareDisplay).show(product1Price);
+    verify(display).show(product1Price);
     cashier.scan(product2Barcode);
-    verify(hardwareDisplay).show(product2Price);
+    verify(display).show(product2Price);
 
     cashier.displayTotalAmount();
 
-    verify(hardwareDisplay).show(product1PlusProduct2Price);
+    verify(display).show(product1PlusProduct2Price);
   }
 
   private static class Catalog
@@ -119,19 +119,29 @@ public class ShopTest
   }
 
   //REQ ASCII only, not Unicode
-  private interface HardwareDisplay
+  private interface Display
   {
     void show(String text);
   }
 
   @AllArgsConstructor
-  private class Display
+  private class DisplayService
   {
-    private HardwareDisplay hardwareDisplay;
+    private Display display;
 
     public void showPrice(Double price)
     {
-      hardwareDisplay.show(formatPrice(price));
+      display.show(formatPrice(price));
+    }
+
+    public void showBarcodeNotFound(String barcode)
+    {
+      display.show(String.format("Product not found for %s", barcode));
+    }
+
+    public void showEmptyBarcode(String barcode)
+    {
+      display.show("Error scanning barcode");
     }
 
     private String formatPrice(Double price)
@@ -139,46 +149,36 @@ public class ShopTest
       NumberFormat formatter = new DecimalFormat("#.00");
       return String.format("EUR %s", formatter.format(price).replace(".", ","));
     }
-
-    public void showBarcodeNotFound(String barcode)
-    {
-      hardwareDisplay.show(String.format("Product not found for %s", barcode));
-    }
-
-    public void scannedEmptyBarcode(String barcode)
-    {
-      hardwareDisplay.show("Error scanning barcode");
-    }
   }
 
   @RequiredArgsConstructor
   private class Cashier
   {
-    private final Display display;
+    private final DisplayService displayService;
     private Double totalPrice = 0.0;
 
     public void scan(String barcode)
     {
       if ("".equals(barcode))
       {
-        display.scannedEmptyBarcode(barcode);
+        displayService.showEmptyBarcode(barcode);
         return;
       }
       Double price = Catalog.findPrice(barcode);
       if (Objects.isNull(price))
       {
-        display.showBarcodeNotFound(barcode);
+        displayService.showBarcodeNotFound(barcode);
       }
       else
       {
         totalPrice= totalPrice + price;
-        display.showPrice(price);
+        displayService.showPrice(price);
       }
     }
 
     public void displayTotalAmount()
     {
-      display.showPrice(totalPrice);
+      displayService.showPrice(totalPrice);
     }
   }
 }
